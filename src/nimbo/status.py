@@ -34,7 +34,7 @@ HEALTH_INTERVAL = 15 * 60
 class StatusProbe:
     def __init__(self) -> None:
         self.rc = rclone.RcClient(st.mount_rc_socket())
-        self._last_health = 0.0
+        self._last_health: float | None = None  # None = comprobar ya
 
     def poll(self, cfg: st.Settings) -> Snapshot:
         if not cfg.is_configured:
@@ -52,7 +52,10 @@ class StatusProbe:
 
         try:
             transfers = rclone.mount_status(self.rc)
-            if not transfers.busy and time.monotonic() - self._last_health > HEALTH_INTERVAL:
+            if not transfers.busy and (
+                self._last_health is None
+                or time.monotonic() - self._last_health > HEALTH_INTERVAL
+            ):
                 self._last_health = time.monotonic()
                 self.rc.call(
                     "operations/list",
@@ -69,4 +72,4 @@ class StatusProbe:
         return Snapshot(Status.SYNCING if transfers.busy else Status.OK, transfers)
 
     def force_health_check(self) -> None:
-        self._last_health = 0.0
+        self._last_health = None

@@ -18,6 +18,19 @@ def app():
     return QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
+@pytest.fixture(autouse=True)
+def drain_background_tasks(monkeypatch):
+    """Nunca llamar a systemctl de verdad y esperar a las tareas en segundo
+    plano antes de deshacer los parches (si no, Qt puede cerrarse a medias)."""
+    for name in ("start", "stop", "restart", "install", "uninstall"):
+        monkeypatch.setattr(service, name, lambda *a, **k: None)
+    yield
+    from PySide6.QtCore import QCoreApplication, QThreadPool
+
+    QThreadPool.globalInstance().waitForDone(5000)
+    QCoreApplication.processEvents()
+
+
 def test_status_icons(app):
     for s in Status:
         assert not icons.status_icon(s).isNull()
@@ -39,8 +52,7 @@ def test_login_dialog_steps(app):
     dlg.close()
 
 
-def test_reauth_dialog_starts_on_credentials(app, monkeypatch):
-    monkeypatch.setattr(service, "start", lambda: None)
+def test_reauth_dialog_starts_on_credentials(app):
     dlg = login.LoginDialog(st.Settings(apple_id="yo@icloud.com"), reauth=True)
     assert dlg.pages.currentWidget() is dlg.page_creds
     assert dlg.apple_id.isReadOnly()
