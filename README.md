@@ -37,7 +37,7 @@ En el PC: Linux con systemd, FUSE 3, rclone 1.70 o más nuevo (se recomienda la 
 
 ```bash
 sudo pacman -S --needed git base-devel
-git clone https://github.com/USUARIO/nimbo.git
+git clone https://github.com/camiool/nimbo.git
 cd nimbo/packaging/arch
 makepkg -si
 ```
@@ -49,7 +49,7 @@ Después abre **Nimbo** desde el menú de aplicaciones.
 Instala `rclone`, `fuse3`, `libsecret` y PySide6 con tu gestor de paquetes. Luego:
 
 ```bash
-pipx install git+https://github.com/USUARIO/nimbo.git
+pipx install git+https://github.com/camiool/nimbo.git
 ```
 
 ## Uso

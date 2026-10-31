@@ -20,7 +20,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/USUARIO/nimbo"
+Homepage = "https://github.com/camiool/nimbo"
 
 [project.scripts]
 nimbo-keyring = "nimbo.keyring:main"
