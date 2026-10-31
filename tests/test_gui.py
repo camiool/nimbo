@@ -1,5 +1,6 @@
 """Pruebas de humo de la interfaz (Qt en modo offscreen)."""
 
+import gc
 import os
 
 import pytest
@@ -15,7 +16,21 @@ from nimbo.status import Status  # noqa: E402
 
 @pytest.fixture(scope="module")
 def app():
-    return QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    from PySide6.QtCore import QCoreApplication, QThreadPool
+
+    qapp = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    yield qapp
+    # Cerrar en orden: ventanas, tareas pendientes y por último Qt. Si no,
+    # Python destruye los objetos de Qt en cualquier orden al salir.
+    for widget in qapp.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+    QThreadPool.globalInstance().waitForDone(5000)
+    QCoreApplication.sendPostedEvents(None, 0)
+    QCoreApplication.processEvents()
+    gc.collect()
+    if hasattr(qapp, "shutdown"):
+        qapp.shutdown()
 
 
 @pytest.fixture(autouse=True)

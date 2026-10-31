@@ -71,7 +71,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.tray and not tray.cfg.is_configured:
         tray.open_login()
 
-    return app.exec()
+    code = app.exec()
+    # Salida ordenada: esperar tareas en curso antes de que Python destruya Qt.
+    from PySide6.QtCore import QThreadPool
+
+    tray.hide()
+    server.close()
+    QThreadPool.globalInstance().waitForDone(5000)
+    return code
 
 
 if __name__ == "__main__":
