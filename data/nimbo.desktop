@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Nimbo
+GenericName=iCloud Drive
+GenericName[es]=iCloud Drive
+Comment=Use iCloud Drive as a folder
+Comment[es]=Usa iCloud Drive como una carpeta
+Exec=nimbo
+Icon=nimbo
+Terminal=false
+Categories=Network;FileTransfer;Utility;Qt;
+Keywords=icloud;apple;cloud;sync;nube;
+StartupNotify=false

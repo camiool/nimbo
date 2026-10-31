@@ -1,0 +1,32 @@
+# Maintainer: TU NOMBRE <tu@correo>
+#
+# Construye Nimbo desde esta copia del repositorio:
+#   cd packaging/arch && makepkg -si
+pkgname=nimbo
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="iCloud Drive como una carpeta más en Linux (basado en rclone)"
+arch=('any')
+url="https://github.com/USUARIO/nimbo"
+license=('GPL-3.0-or-later')
+depends=('python' 'pyside6' 'rclone' 'fuse3' 'libsecret')
+makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
+optdepends=('kwallet: guardar la clave en KWallet (Plasma)'
+            'gnome-keyring: guardar la clave en GNOME Keyring')
+source=()
+sha256sums=()
+
+_srcroot() { realpath "$startdir/../.."; }
+
+build() {
+  cd "$(_srcroot)"
+  python -m build --wheel --no-isolation --outdir "$srcdir/dist"
+}
+
+package() {
+  cd "$(_srcroot)"
+  python -m installer --destdir="$pkgdir" "$srcdir"/dist/*.whl
+  install -Dm644 data/nimbo.desktop "$pkgdir/usr/share/applications/nimbo.desktop"
+  install -Dm644 data/nimbo.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/nimbo.svg"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
