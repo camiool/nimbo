@@ -88,6 +88,13 @@ _EN = {
     "Registro de Nimbo": "Nimbo log",
     "Cerrar": "Close",
     "No hay bandeja del sistema disponible.": "No system tray available.",
+    "Idioma": "Language",
+    "Automático (idioma del sistema)": "Automatic (system language)",
+    "rclone no está instalado": "rclone is not installed",
+    "no se pudo cifrar la configuración": "could not encrypt the configuration",
+    "no se pudo hablar con rclone: {exc}": "could not talk to rclone: {exc}",
+    "rclone terminó inesperadamente": "rclone exited unexpectedly",
+    "rclone no respondió a tiempo": "rclone did not respond in time",
 }
 
 _CATALOGS = {"en": _EN}
@@ -102,9 +109,30 @@ def _detect() -> str:
     return lang[:2].lower()
 
 
-_LANG = _detect()
-# El español es el idioma base; cualquier idioma sin catálogo usa inglés.
-_CATALOG = {} if _LANG == "es" else _CATALOGS.get(_LANG, _EN)
+# Idiomas disponibles: código -> nombre propio (se muestra sin traducir).
+LANGUAGES = {"es": "Español", "en": "English"}
+
+_LANG = "es"
+_CATALOG: dict[str, str] = {}
+
+
+def set_language(code: str = "auto") -> str:
+    """Activa un idioma ("auto", "es", "en"). Devuelve el código aplicado."""
+    global _LANG, _CATALOG
+    lang = _detect() if code in ("", "auto") else code
+    if lang not in LANGUAGES:
+        lang = "en"  # cualquier idioma sin traducción usa inglés
+    _LANG = lang
+    # El español es el idioma base de los textos: no necesita catálogo.
+    _CATALOG = {} if lang == "es" else _CATALOGS.get(lang, _EN)
+    return lang
+
+
+def current_language() -> str:
+    return _LANG
+
+
+set_language("auto")
 
 
 def _(text: str, **kwargs: object) -> str:

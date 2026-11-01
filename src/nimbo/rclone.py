@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from . import settings as st
+from .i18n import _
 
 MIN_VERSION = (1, 70, 0)
 
@@ -96,7 +97,7 @@ def encrypt_config(cfg: st.Settings) -> None:
     """Cifra rclone.conf con una clave aleatoria guardada en el llavero."""
     binary = rclone_binary()
     if not binary:
-        raise RcloneError("rclone no está instalado")
+        raise RcloneError(_("rclone no está instalado"))
     st.ensure_private_dir(st.config_dir())
     conf = st.rclone_config_path()
     if not conf.exists():
@@ -118,7 +119,7 @@ def encrypt_config(cfg: st.Settings) -> None:
         check=False,
     )
     if proc.returncode != 0:
-        raise RcloneError(proc.stderr.strip() or "no se pudo cifrar la configuración")
+        raise RcloneError(proc.stderr.strip() or _("no se pudo cifrar la configuración"))
     conf.chmod(0o600)
     cfg.config_encrypted = True
 
@@ -155,7 +156,7 @@ class RcClient:
             resp = conn.getresponse()
             raw = resp.read().decode("utf-8", "replace")
         except OSError as exc:
-            raise RcloneError(f"no se pudo hablar con rclone: {exc}") from exc
+            raise RcloneError(_("no se pudo hablar con rclone: {exc}", exc=exc)) from exc
         finally:
             conn.close()
         try:
@@ -222,7 +223,7 @@ class SetupSession:
     def start(self) -> None:
         binary = rclone_binary()
         if not binary:
-            raise RcloneError("rclone no está instalado")
+            raise RcloneError(_("rclone no está instalado"))
         st.ensure_private_dir(st.runtime_dir())
         sock = st.setup_rc_socket()
         sock.unlink(missing_ok=True)
@@ -243,7 +244,7 @@ class SetupSession:
         while time.monotonic() < deadline:
             if self.proc.poll() is not None:
                 err = self.proc.stderr.read() if self.proc.stderr else ""
-                raise RcloneError(err.strip() or "rclone terminó inesperadamente")
+                raise RcloneError(err.strip() or _("rclone terminó inesperadamente"))
             if sock.exists():
                 try:
                     self.rc.call("rc/noop", timeout=5)
@@ -252,7 +253,7 @@ class SetupSession:
                     pass
             time.sleep(0.2)
         self.stop()
-        raise RcloneError("rclone no respondió a tiempo")
+        raise RcloneError(_("rclone no respondió a tiempo"))
 
     def stop(self) -> None:
         if self.proc and self.proc.poll() is None:

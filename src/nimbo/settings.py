@@ -70,6 +70,8 @@ class Settings:
     config_encrypted: bool = False
     apple_id: str = ""
     autostart: bool = True
+    # "auto" (según el sistema), "es" o "en".
+    language: str = "auto"
 
     @classmethod
     def load(cls) -> Settings:

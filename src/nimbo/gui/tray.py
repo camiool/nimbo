@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QUrl
+from PySide6.QtCore import QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QSystemTrayIcon
 
@@ -38,6 +38,9 @@ def human_speed(bps: float) -> str:
 
 
 class Tray(QSystemTrayIcon):
+    # Pide a app.py que rehaga la bandeja con el nuevo idioma.
+    language_changed = Signal()
+
     def __init__(self, app: QApplication):
         super().__init__(status_icon(Status.CONNECTING), app)
         self.app = app
@@ -191,7 +194,9 @@ class Tray(QSystemTrayIcon):
             self._single(lambda: LoginDialog(self.cfg, reauth=reauth))
 
     def open_prefs(self) -> None:
-        self._single(lambda: PrefsDialog(self.cfg))
+        dialog = self._single(lambda: PrefsDialog(self.cfg))
+        if dialog is not None:
+            dialog.language_changed.connect(self.language_changed.emit)
 
     def open_log(self) -> None:
         self._single(LogDialog)

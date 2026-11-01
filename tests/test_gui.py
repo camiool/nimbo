@@ -104,3 +104,56 @@ def test_sign_out_cleans_local_state(monkeypatch):
     assert not st.rclone_config_path().exists()
     assert not st.cache_dir().exists()
     assert st.Settings.load().apple_id == ""
+
+
+def test_language_switch(app):
+    from nimbo import i18n
+    from nimbo.i18n import _
+
+    try:
+        assert i18n.set_language("en") == "en"
+        assert _("Abrir carpeta de iCloud") == "Open iCloud folder"
+        assert i18n.set_language("es") == "es"
+        assert _("Abrir carpeta de iCloud") == "Abrir carpeta de iCloud"
+        assert i18n.set_language("fr") == "en"  # sin traducción -> inglés
+    finally:
+        i18n.set_language("es")
+
+
+def test_prefs_language_saved_and_signalled(app):
+    from nimbo import i18n
+
+    dlg = prefs.PrefsDialog(st.Settings())
+    fired = []
+    dlg.language_changed.connect(lambda: fired.append(True))
+    dlg.language.setCurrentIndex(dlg.language.findData("en"))
+    try:
+        dlg._save()
+        assert st.Settings.load().language == "en"
+        assert fired == [True]
+        assert i18n.current_language() == "en"
+    finally:
+        i18n.set_language("es")
+
+
+def test_every_ui_string_has_english():
+    """Cada texto marcado con _() debe tener traducción al inglés."""
+    import ast
+    import pathlib
+
+    from nimbo import i18n
+
+    src = pathlib.Path(__file__).parent.parent / "src" / "nimbo"
+    missing = []
+    for f in src.rglob("*.py"):
+        for node in ast.walk(ast.parse(f.read_text())):
+            if (isinstance(node, ast.Call) and getattr(node.func, "id", None) == "_"
+                    and node.args and isinstance(node.args[0], ast.Constant)
+                    and node.args[0].value not in i18n._EN):
+                missing.append(f"{f.name}: {node.args[0].value}")
+    for table in ("_LABELS",):
+        from nimbo.gui import tray
+        missing += [v for v in getattr(tray, table).values() if v not in i18n._EN]
+    from nimbo.gui.login import _STEP_TEXT
+    missing += [v for v in _STEP_TEXT.values() if v not in i18n._EN]
+    assert not missing, missing

@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -23,7 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import keyring, service
+from .. import i18n, keyring, service
 from .. import settings as st
 from ..i18n import _
 from .icons import app_icon
@@ -45,6 +46,7 @@ def sign_out(cfg: st.Settings) -> None:
 
 class PrefsDialog(QDialog):
     signed_out = Signal()
+    language_changed = Signal()
 
     def __init__(self, cfg: st.Settings, parent: QWidget | None = None):
         super().__init__(parent)
@@ -73,6 +75,14 @@ class PrefsDialog(QDialog):
         self.autostart = QCheckBox(_("Iniciar Nimbo al iniciar sesión"))
         self.autostart.setChecked(cfg.autostart)
         form.addRow(self.autostart)
+
+        self.language = QComboBox()
+        self.language.addItem(_("Automático (idioma del sistema)"), "auto")
+        for code, name in i18n.LANGUAGES.items():
+            self.language.addItem(name, code)
+        index = self.language.findData(cfg.language)
+        self.language.setCurrentIndex(max(index, 0))
+        form.addRow(_("Idioma"), self.language)
 
         self.error = QLabel()
         self.error.setStyleSheet("color: #e74c3c;")
@@ -118,6 +128,9 @@ class PrefsDialog(QDialog):
         self.cfg.mount_point = new_mount
         self.cfg.cache_max_size_gb = self.cache_spin.value()
         self.cfg.autostart = self.autostart.isChecked()
+        new_language = self.language.currentData()
+        language_changed = new_language != self.cfg.language
+        self.cfg.language = new_language
         self.cfg.save()
         cfg = self.cfg
 
@@ -129,6 +142,9 @@ class PrefsDialog(QDialog):
                 service.start()
 
         run_async(work, on_error=lambda e: QMessageBox.warning(None, _("Error"), str(e)))
+        if language_changed:
+            i18n.set_language(new_language)
+            self.language_changed.emit()
         self.accept()
 
     def _sign_out(self) -> None:

@@ -9,7 +9,15 @@
    ruff check .
    QT_QPA_PLATFORM=offscreen pytest
    ```
-4. Los textos de la interfaz se escriben en español con `_("...")`. Añade la traducción al inglés en `src/nimbo/i18n.py`.
+4. Los textos de la interfaz se escriben en español con `_("...")`. Añade la traducción al inglés en `src/nimbo/i18n.py`. Si falta alguna, la prueba `test_every_ui_string_has_english` falla.
+
+### Traducciones a otros idiomas
+
+Para añadir, por ejemplo, portugués:
+
+1. En `src/nimbo/i18n.py`, crea un diccionario `_PT` con el mismo formato que `_EN` (texto en español → traducción).
+2. Regístralo en `_CATALOGS = {"en": _EN, "pt": _PT}` y en `LANGUAGES` (`"pt": "Português"`).
+3. Aparecerá solo en Preferencias → Idioma.
 
 Reglas de seguridad para cualquier cambio:
 

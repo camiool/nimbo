@@ -18,7 +18,7 @@
 - **Icono de estado:** verde si está conectado, azul si está sincronizando, naranja si hay que volver a iniciar sesión, rojo si hay un error.
 - **Aviso de sesión caducada:** Apple pide repetir el 2FA más o menos cada 30 días. Nimbo te avisa y te pide el código en una ventana, sin terminal.
 - **Se monta al arrancar** mediante un servicio de usuario de systemd, aunque cierres la app.
-- Interfaz en español y en inglés.
+- **Español e inglés:** por defecto usa el idioma del sistema. Puedes cambiarlo en Preferencias → Idioma y se aplica al instante.
 
 Por debajo usa el módulo `iclouddrive` de [rclone](https://rclone.org/iclouddrive/), que es el que habla con Apple. Nimbo añade la interfaz, la gestión de la sesión y la parte de seguridad.
 
@@ -57,6 +57,14 @@ pipx install git+https://github.com/camiool/nimbo.git
 1. Abre Nimbo. La primera vez se abre el asistente: Apple ID, contraseña y el código de 6 dígitos que aparece en tu iPhone, iPad o Mac (también puedes pedirlo por SMS).
 2. Elige la carpeta (por defecto `~/iCloud`) y el tamaño de la caché.
 3. Listo. Haz clic en el icono de la bandeja para abrir la carpeta.
+
+### Idioma
+
+Nimbo usa el idioma del sistema: español si tu sistema está en español, inglés en cualquier otro caso. Para elegirlo a mano, ve a **Preferencias → Idioma**.
+
+<p align="center"><img src="docs/prefs-en.png" width="60%" alt="Preferences in English"></p>
+
+Para añadir otro idioma, mira la sección de traducciones en [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Cuando Apple pida verificar otra vez, el icono se pone naranja y aparece una notificación. Haz clic en ella e introduce el código.
 
@@ -116,4 +124,4 @@ Las contribuciones son bienvenidas. Lee [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## English summary
 
-Nimbo is a free (GPL-3.0) tray app that mounts **iCloud Drive as a regular folder on Linux**, similar to macOS. It is built on rclone's `iclouddrive` backend. It handles sign-in and 2FA through a GUI, runs the mount as a systemd user service with a capped VFS cache, and warns you when Apple's session expires (about every 30 days) so you can re-enter the code. The rclone config is encrypted with a random key stored in the system keyring via libsecret, and credentials are never passed on the command line. Requirements: Advanced Data Protection off, "Access iCloud Data on the Web" on, rclone ≥ 1.70. Install on Arch/CachyOS with `cd packaging/arch && makepkg -si`. Not affiliated with Apple.
+Nimbo is a free (GPL-3.0) tray app that mounts **iCloud Drive as a regular folder on Linux**, similar to macOS. It is built on rclone's `iclouddrive` backend. It handles sign-in and 2FA through a GUI, runs the mount as a systemd user service with a capped VFS cache, and warns you when Apple's session expires (about every 30 days) so you can re-enter the code. The rclone config is encrypted with a random key stored in the system keyring via libsecret, and credentials are never passed on the command line. The interface is available in **English and Spanish**: it follows your system language, and you can switch it under Preferences → Language. Requirements: Advanced Data Protection off, "Access iCloud Data on the Web" on, rclone ≥ 1.70. Install on Arch/CachyOS with `cd packaging/arch && makepkg -si`. Not affiliated with Apple.

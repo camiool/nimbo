@@ -23,9 +23,13 @@ def main(argv: list[str] | None = None) -> int:
     from PySide6.QtNetwork import QLocalServer, QLocalSocket
     from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
+    from . import i18n
     from .gui.icons import app_icon
     from .gui.tray import Tray
     from .i18n import _
+    from .settings import Settings
+
+    i18n.set_language(Settings.load().language)
 
     app = QApplication(sys.argv[:1])
     app.setApplicationName("Nimbo")
@@ -48,8 +52,21 @@ def main(argv: list[str] | None = None) -> int:
         QMessageBox.critical(None, "Nimbo", _("No hay bandeja del sistema disponible."))
         return 1
 
-    tray = Tray(app)
-    tray.show()
+    holder: dict[str, Tray] = {}
+
+    def make_tray() -> None:
+        # Al cambiar de idioma se crea una bandeja nueva con los textos nuevos.
+        old = holder.get("tray")
+        tray = Tray(app)
+        tray.language_changed.connect(make_tray)
+        tray.show()
+        holder["tray"] = tray
+        if old is not None:
+            old.timer.stop()
+            old.hide()
+            old.deleteLater()
+
+    make_tray()
 
     QLocalServer.removeServer(server_name)
     server = QLocalServer()
@@ -62,20 +79,20 @@ def main(argv: list[str] | None = None) -> int:
             return
         def on_ready() -> None:
             if bytes(conn.readAll()).startswith(b"show"):
-                tray.show_main()
+                holder["tray"].show_main()
         conn.readyRead.connect(on_ready)
         conn.disconnected.connect(conn.deleteLater)
 
     server.newConnection.connect(on_connection)
 
-    if not args.tray and not tray.cfg.is_configured:
-        tray.open_login()
+    if not args.tray and not holder["tray"].cfg.is_configured:
+        holder["tray"].open_login()
 
     code = app.exec()
     # Salida ordenada: esperar tareas en curso antes de que Python destruya Qt.
     from PySide6.QtCore import QThreadPool
 
-    tray.hide()
+    holder["tray"].hide()
     server.close()
     QThreadPool.globalInstance().waitForDone(5000)
     return code

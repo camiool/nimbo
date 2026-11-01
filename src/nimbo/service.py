@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import rclone
 from . import settings as st
+from .i18n import _
 
 
 def systemd_quote(arg: str) -> str:
@@ -76,7 +77,7 @@ def _systemctl(*args: str, check: bool = True) -> subprocess.CompletedProcess:
 def install(cfg: st.Settings) -> None:
     binary = rclone.rclone_binary()
     if not binary:
-        raise rclone.RcloneError("rclone no está instalado")
+        raise rclone.RcloneError(_("rclone no está instalado"))
     unit = st.systemd_unit_path()
     unit.parent.mkdir(parents=True, exist_ok=True)
     st.ensure_private_dir(st.cache_dir())
