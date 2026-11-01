@@ -3,7 +3,7 @@
 # Construye Nimbo desde esta copia del repositorio:
 #   cd packaging/arch && makepkg -si
 pkgname=nimbo
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc="iCloud Drive como una carpeta más en Linux (basado en rclone)"
 arch=('any')

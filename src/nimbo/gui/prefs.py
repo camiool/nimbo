@@ -60,7 +60,7 @@ class PrefsDialog(QDialog):
 
         self.mount_edit = QLineEdit(cfg.mount_point)
         pick = QPushButton(_("Elegir…"))
-        pick.clicked.connect(self._pick)
+        pick.clicked.connect(lambda: self._pick(self.mount_edit))
         row = QHBoxLayout()
         row.addWidget(self.mount_edit)
         row.addWidget(pick)
@@ -72,6 +72,37 @@ class PrefsDialog(QDialog):
         self.cache_spin.setValue(cfg.cache_max_size_gb)
         form.addRow(_("Espacio máximo para la caché local"), self.cache_spin)
 
+        # --- iCloud Fotos (solo lectura)
+        self.photos_check = QCheckBox(_("Mostrar mis fotos de iCloud (solo lectura)"))
+        self.photos_check.setChecked(cfg.photos_enabled)
+        form.addRow(QLabel(f"<b>{_('iCloud Fotos')}</b>"))
+        form.addRow(self.photos_check)
+        self.photos_edit = QLineEdit(cfg.photos_mount_point)
+        photos_pick = QPushButton(_("Elegir…"))
+        photos_pick.clicked.connect(lambda: self._pick(self.photos_edit))
+        photos_row = QHBoxLayout()
+        photos_row.addWidget(self.photos_edit)
+        photos_row.addWidget(photos_pick)
+        form.addRow(_("Carpeta de Fotos"), photos_row)
+        self.photos_cache = QSpinBox()
+        self.photos_cache.setRange(1, 2000)
+        self.photos_cache.setSuffix(" GB")
+        self.photos_cache.setValue(cfg.photos_cache_max_size_gb)
+        form.addRow(_("Caché para fotos"), self.photos_cache)
+        hint = QLabel(_("La primera vez puede tardar unos minutos en mostrar todos los "
+                        "álbumes. Las fotos no se pueden subir ni borrar desde aquí."))
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: gray;")
+        form.addRow(hint)
+
+        def toggle_photos(on: bool) -> None:
+            for w in (self.photos_edit, photos_pick, self.photos_cache):
+                w.setEnabled(on)
+
+        self.photos_check.toggled.connect(toggle_photos)
+        toggle_photos(cfg.photos_enabled)
+
+        form.addRow(QLabel(f"<b>{_('General')}</b>"))
         self.autostart = QCheckBox(_("Iniciar Nimbo al iniciar sesión"))
         self.autostart.setChecked(cfg.autostart)
         form.addRow(self.autostart)
@@ -109,30 +140,45 @@ class PrefsDialog(QDialog):
         lay.addWidget(self.error)
         lay.addLayout(bottom)
 
-    def _pick(self) -> None:
-        chosen = QFileDialog.getExistingDirectory(self, _("Carpeta de iCloud"),
+    def _pick(self, target: QLineEdit) -> None:
+        chosen = QFileDialog.getExistingDirectory(self, _("Elegir…").rstrip("…"),
                                                   str(Path.home()))
         if chosen:
-            self.mount_edit.setText(chosen)
+            target.setText(chosen)
 
     def _save(self) -> None:
-        new_mount = str(Path(self.mount_edit.text().strip()).expanduser())
-        mount_changed = new_mount != self.cfg.mount_point
-        if mount_changed:
-            problem = folder_problem(Path(new_mount))
-            if problem:
-                self.error.setText(problem)
-                self.error.show()
-                return
-        changed = mount_changed or self.cache_spin.value() != self.cfg.cache_max_size_gb
-        self.cfg.mount_point = new_mount
-        self.cfg.cache_max_size_gb = self.cache_spin.value()
-        self.cfg.autostart = self.autostart.isChecked()
-        new_language = self.language.currentData()
-        language_changed = new_language != self.cfg.language
-        self.cfg.language = new_language
-        self.cfg.save()
         cfg = self.cfg
+        new_mount = str(Path(self.mount_edit.text().strip()).expanduser())
+        new_photos = str(Path(self.photos_edit.text().strip()).expanduser())
+        photos_on = self.photos_check.isChecked()
+        problem = None
+        if new_mount != cfg.mount_point:
+            problem = folder_problem(Path(new_mount))
+        if not problem and photos_on:
+            # Si Fotos ya está montado ahí, es normal que la carpeta tenga contenido.
+            in_use = cfg.photos_enabled and new_photos == cfg.photos_mount_point
+            problem = folder_problem(Path(new_photos), Path(new_mount), allow_nonempty=in_use)
+        if problem:
+            self.error.setText(problem)
+            self.error.show()
+            return
+        changed = (
+            new_mount != cfg.mount_point
+            or self.cache_spin.value() != cfg.cache_max_size_gb
+            or photos_on != cfg.photos_enabled
+            or (photos_on and new_photos != cfg.photos_mount_point)
+            or (photos_on and self.photos_cache.value() != cfg.photos_cache_max_size_gb)
+        )
+        cfg.mount_point = new_mount
+        cfg.cache_max_size_gb = self.cache_spin.value()
+        cfg.photos_enabled = photos_on
+        cfg.photos_mount_point = new_photos
+        cfg.photos_cache_max_size_gb = self.photos_cache.value()
+        cfg.autostart = self.autostart.isChecked()
+        new_language = self.language.currentData()
+        language_changed = new_language != cfg.language
+        cfg.language = new_language
+        cfg.save()
 
         def work() -> None:
             service.write_autostart(cfg.autostart)

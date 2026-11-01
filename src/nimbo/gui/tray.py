@@ -55,6 +55,8 @@ class Tray(QSystemTrayIcon):
         self.act_status.setEnabled(False)
         self.act_open = QAction(_("Abrir carpeta de iCloud"))
         self.act_open.triggered.connect(self.open_folder)
+        self.act_photos = QAction(_("Abrir Fotos de iCloud"))
+        self.act_photos.triggered.connect(self.open_photos)
         self.act_pause = QAction(_("Pausar sincronización"))
         self.act_pause.triggered.connect(self.toggle_pause)
         self.act_login = QAction(_("Iniciar sesión en iCloud…"))
@@ -68,8 +70,8 @@ class Tray(QSystemTrayIcon):
         act_quit = QAction(_("Salir"), self)
         act_quit.triggered.connect(app.quit)
 
-        for item in (self.act_status, None, self.act_open, self.act_pause, self.act_login,
-                     None, act_prefs, act_log, act_about, None, act_quit):
+        for item in (self.act_status, None, self.act_open, self.act_photos, self.act_pause,
+                     self.act_login, None, act_prefs, act_log, act_about, None, act_quit):
             if item is None:
                 self.menu.addSeparator()
             else:
@@ -79,6 +81,10 @@ class Tray(QSystemTrayIcon):
 
         self.activated.connect(self._on_activated)
         self.messageClicked.connect(self._on_message_clicked)
+
+        cfg = self.cfg
+        if cfg.is_configured:
+            run_async(lambda: service.upgrade_if_needed(cfg))
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.poll)
@@ -117,6 +123,8 @@ class Tray(QSystemTrayIcon):
 
         configured = snap.status is not Status.UNCONFIGURED
         self.act_open.setEnabled(snap.status in (Status.OK, Status.SYNCING))
+        self.act_photos.setVisible(snap.photos is not None)
+        self.act_photos.setEnabled(snap.photos is Status.OK)
         self.act_pause.setVisible(configured)
         self.act_pause.setText(
             _("Reanudar sincronización") if snap.status in (Status.PAUSED, Status.ERROR)
@@ -160,6 +168,9 @@ class Tray(QSystemTrayIcon):
 
     def open_folder(self) -> None:
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(self.cfg.mount_point))))
+
+    def open_photos(self) -> None:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(self.cfg.photos_mount_point))))
 
     def toggle_pause(self) -> None:
         if self.status in (Status.PAUSED, Status.ERROR):

@@ -25,6 +25,8 @@ class Snapshot:
     status: Status
     transfers: rclone.TransferStatus | None = None
     detail: str = ""
+    # Estado de iCloud Fotos (None si está desactivado).
+    photos: Status | None = None
 
 
 # Cada cuánto se comprueba de verdad que la sesión de Apple sigue viva.
@@ -39,14 +41,36 @@ class StatusProbe:
     def poll(self, cfg: st.Settings) -> Snapshot:
         if not cfg.is_configured:
             return Snapshot(Status.UNCONFIGURED)
+        snap = self._poll_drive()
+        if cfg.photos_enabled:
+            snap.photos = self._poll_photos()
+            # La sesión es la misma: si Fotos detecta que caducó, vale para todo.
+            if snap.photos is Status.AUTH:
+                snap.status = Status.AUTH
+            elif snap.photos is Status.ERROR and snap.status in (Status.OK, Status.SYNCING):
+                snap.status = Status.ERROR
+                snap.detail = service.recent_log(5, service.PHOTOS).strip()
+        return snap
 
+    @staticmethod
+    def _poll_photos() -> Status:
+        state = service.state(service.PHOTOS)
+        if state in ("activating", "reloading"):
+            return Status.CONNECTING
+        if state == "failed":
+            if service.failed_because_of_auth(service.PHOTOS):
+                return Status.AUTH
+            return Status.ERROR
+        return Status.OK if state == "active" else Status.PAUSED
+
+    def _poll_drive(self) -> Snapshot:
         state = service.state()
         if state in ("activating", "reloading"):
             return Snapshot(Status.CONNECTING)
         if state == "failed":
             if service.failed_because_of_auth():
                 return Snapshot(Status.AUTH)
-            return Snapshot(Status.ERROR, detail=service.recent_log(5).strip())
+            return Snapshot(Status.ERROR, detail=service.recent_log(5, service.DRIVE).strip())
         if state != "active":
             return Snapshot(Status.PAUSED)
 

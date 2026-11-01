@@ -35,8 +35,9 @@ _EN = {
     "Para que Nimbo pueda acceder a tu iCloud Drive, comprueba esto en tu "
     "iPhone, iPad o Mac:": "For Nimbo to reach your iCloud Drive, check the "
     "following on your iPhone, iPad or Mac:",
-    "<b>Protección de datos avanzada</b> debe estar <b>desactivada</b>.":
-    "<b>Advanced Data Protection</b> must be <b>turned off</b>.",
+    "Si usas <b>Protección de datos avanzada</b>, Apple te pedirá aprobar el acceso en "
+    "uno de tus dispositivos.": "If you use <b>Advanced Data Protection</b>, Apple will ask "
+    "you to approve access on one of your devices.",
     "<b>Acceder a datos de iCloud en la web</b> debe estar <b>activado</b> "
     "(Ajustes → tu nombre → iCloud).": "<b>Access iCloud Data on the Web</b> "
     "must be <b>on</b> (Settings → your name → iCloud).",
@@ -95,6 +96,21 @@ _EN = {
     "no se pudo hablar con rclone: {exc}": "could not talk to rclone: {exc}",
     "rclone terminó inesperadamente": "rclone exited unexpectedly",
     "rclone no respondió a tiempo": "rclone did not respond in time",
+    "iCloud Fotos": "iCloud Photos",
+    "Fotos de iCloud": "iCloud Photos",
+    "Abrir Fotos de iCloud": "Open iCloud Photos",
+    "Carpeta de Fotos": "Photos folder",
+    "Caché para fotos": "Photos cache",
+    "General": "General",
+    "Mostrar mis fotos de iCloud (solo lectura)": "Show my iCloud photos (read-only)",
+    "Mostrar también mis fotos de iCloud (solo lectura)":
+    "Also show my iCloud photos (read-only)",
+    "La primera vez puede tardar unos minutos en mostrar todos los álbumes. Las fotos no "
+    "se pueden subir ni borrar desde aquí.": "The first time it may take a few minutes to "
+    "show all albums. Photos can't be uploaded or deleted from here.",
+    "Las carpetas de iCloud Drive y de Fotos deben ser distintas y no estar una dentro "
+    "de la otra.": "The iCloud Drive and Photos folders must be different and not inside "
+    "each other.",
 }
 
 _CATALOGS = {"en": _EN}

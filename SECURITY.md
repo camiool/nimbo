@@ -11,7 +11,7 @@ No abras un *issue* público. Usa **Security → Report a vulnerability** en Git
 | Contraseña de Apple (ofuscada por rclone) y token de sesión | `~/.config/nimbo/rclone.conf` | Archivo cifrado por rclone con una clave aleatoria; permisos `0600` |
 | Clave de cifrado de la configuración | Llavero del sistema (libsecret) | La gestiona KWallet o GNOME Keyring |
 | Socket de control de rclone | `$XDG_RUNTIME_DIR/nimbo/` | Carpeta `0700`: solo la usa tu usuario |
-| Archivos en caché | `~/.cache/nimbo` | Carpeta `0700` |
+| Archivos en caché (Drive y Fotos) | `~/.cache/nimbo/drive`, `~/.cache/nimbo/photos` | Carpetas `0700` |
 
 Qué protege:
 

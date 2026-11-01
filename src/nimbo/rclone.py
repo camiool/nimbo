@@ -23,7 +23,9 @@ from typing import Any
 from . import settings as st
 from .i18n import _
 
-MIN_VERSION = (1, 70, 0)
+# 1.74 trae el inicio de sesión SRP que Apple exige y iCloud Fotos;
+# 1.75 corrige el 2FA (error 409) y la lista de álbumes.
+MIN_VERSION = (1, 75, 0)
 
 
 class RcloneError(Exception):

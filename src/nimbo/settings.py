@@ -7,9 +7,12 @@ import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from .i18n import _
+
 APP_ID = "nimbo"
 REMOTE_NAME = "icloud"
 SERVICE_NAME = "nimbo-mount.service"
+PHOTOS_SERVICE_NAME = "nimbo-photos.service"
 
 
 def _xdg(var: str, default: str) -> Path:
@@ -38,9 +41,9 @@ def settings_path() -> Path:
     return config_dir() / "settings.json"
 
 
-def mount_rc_socket() -> Path:
-    """Socket de control del proceso de montaje (lo crea systemd)."""
-    return runtime_dir() / "rc.sock"
+def mount_rc_socket(kind: str = "drive") -> Path:
+    """Socket de control de un montaje ("drive" o "photos"); su carpeta la crea systemd."""
+    return runtime_dir() / kind / "rc.sock"
 
 
 def setup_rc_socket() -> Path:
@@ -48,8 +51,8 @@ def setup_rc_socket() -> Path:
     return runtime_dir() / "setup.sock"
 
 
-def systemd_unit_path() -> Path:
-    return _xdg("XDG_CONFIG_HOME", ".config") / "systemd" / "user" / SERVICE_NAME
+def systemd_unit_dir() -> Path:
+    return _xdg("XDG_CONFIG_HOME", ".config") / "systemd" / "user"
 
 
 def autostart_path() -> Path:
@@ -72,6 +75,10 @@ class Settings:
     autostart: bool = True
     # "auto" (según el sistema), "es" o "en".
     language: str = "auto"
+    # iCloud Fotos (solo lectura), opcional.
+    photos_enabled: bool = False
+    photos_mount_point: str = field(default_factory=lambda: str(Path.home() / _("Fotos de iCloud")))
+    photos_cache_max_size_gb: int = 5
 
     @classmethod
     def load(cls) -> Settings:

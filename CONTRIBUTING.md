@@ -26,4 +26,4 @@ Reglas de seguridad para cualquier cambio:
 - No añadas conexiones a servidores que no sean de Apple.
 - No uses logotipos ni elementos gráficos de Apple.
 
-Ideas pendientes: iconos de estado por archivo en Dolphin y Nautilus, carpetas "siempre disponibles sin conexión", iCloud Fotos, paquete en el AUR y Flatpak.
+Ideas pendientes: iconos de estado por archivo en Dolphin y Nautilus, carpetas "siempre disponibles sin conexión", copia de seguridad local de iCloud Fotos, paquete en el AUR y Flatpak.

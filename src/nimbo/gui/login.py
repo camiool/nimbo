@@ -36,8 +36,21 @@ _STEP_TEXT = {
 }
 
 
-def folder_problem(path: Path) -> str | None:
-    if path.exists() and path.is_dir() and any(path.iterdir()):
+def folder_problem(
+    path: Path, other: Path | None = None, allow_nonempty: bool = False
+) -> str | None:
+    """Motivo por el que no se puede montar en ``path`` (o None si vale).
+
+    ``other`` es la carpeta del otro montaje: no pueden coincidir ni ir una
+    dentro de la otra.
+    """
+    path = path.expanduser().resolve()
+    if other is not None:
+        other = other.expanduser().resolve()
+        if path == other or path.is_relative_to(other) or other.is_relative_to(path):
+            return _("Las carpetas de iCloud Drive y de Fotos deben ser distintas "
+                     "y no estar una dentro de la otra.")
+    if not allow_nonempty and path.exists() and path.is_dir() and any(path.iterdir()):
         return _("La carpeta elegida no está vacía. Elige una carpeta vacía o nueva.")
     return None
 
@@ -118,9 +131,10 @@ class LoginDialog(QDialog):
             "<p>{}</p><ul><li>{}</li><li>{}</li></ul><p><small>{}</small></p>".format(
                 _("Para que Nimbo pueda acceder a tu iCloud Drive, comprueba esto en tu "
                   "iPhone, iPad o Mac:"),
-                _("<b>Protección de datos avanzada</b> debe estar <b>desactivada</b>."),
                 _("<b>Acceder a datos de iCloud en la web</b> debe estar <b>activado</b> "
                   "(Ajustes → tu nombre → iCloud)."),
+                _("Si usas <b>Protección de datos avanzada</b>, Apple te pedirá aprobar "
+                  "el acceso en uno de tus dispositivos."),
                 _("Tu contraseña viaja solo entre este equipo y Apple. Se guarda en este "
                   "equipo cifrada con una clave que vive en el llavero del sistema."),
             )
@@ -198,6 +212,9 @@ class LoginDialog(QDialog):
         self.cache_spin.setSuffix(" GB")
         self.cache_spin.setValue(self.cfg.cache_max_size_gb)
         form.addRow(_("Espacio máximo para la caché local"), self.cache_spin)
+        self.photos_check = QCheckBox(_("Mostrar también mis fotos de iCloud (solo lectura)"))
+        self.photos_check.setChecked(self.cfg.photos_enabled)
+        form.addRow(self.photos_check)
         self.autostart_check = QCheckBox(_("Iniciar Nimbo al iniciar sesión"))
         self.autostart_check.setChecked(self.cfg.autostart)
         form.addRow(self.autostart_check)
@@ -335,7 +352,10 @@ class LoginDialog(QDialog):
 
     def _finish_setup(self) -> None:
         mount = Path(self.mount_edit.text().strip()).expanduser()
+        photos = self.photos_check.isChecked()
         problem = folder_problem(mount)
+        if not problem and photos:
+            problem = folder_problem(Path(self.cfg.photos_mount_point), mount)
         if problem:
             self.error_label.setText(problem)
             self.error_label.show()
@@ -343,6 +363,7 @@ class LoginDialog(QDialog):
         self.cfg.mount_point = str(mount)
         self.cfg.cache_max_size_gb = self.cache_spin.value()
         self.cfg.autostart = self.autostart_check.isChecked()
+        self.cfg.photos_enabled = photos
         self.cfg.save()
         cfg = self.cfg
 

@@ -1,13 +1,39 @@
-"""Servicio de usuario de systemd que mantiene montada la carpeta de iCloud."""
+"""Servicios de usuario de systemd que mantienen montadas las carpetas de iCloud.
+
+Hay dos montajes, ambos con la misma sesión de Apple (el mismo remoto de
+rclone), así que basta un solo inicio de sesión con 2FA:
+
+- ``drive``: iCloud Drive, lectura y escritura.
+- ``photos``: iCloud Fotos, solo lectura (rclone no permite subir ni borrar).
+"""
 
 from __future__ import annotations
 
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import rclone
 from . import settings as st
 from .i18n import _
+
+
+@dataclass(frozen=True)
+class Mount:
+    kind: str  # "drive" o "photos"
+    unit_name: str
+    description: str
+
+    def unit_path(self) -> Path:
+        return st.systemd_unit_dir() / self.unit_name
+
+    def installed(self) -> bool:
+        return self.unit_path().exists()
+
+
+DRIVE = Mount("drive", st.SERVICE_NAME, "iCloud Drive")
+PHOTOS = Mount("photos", st.PHOTOS_SERVICE_NAME, "iCloud Fotos")
+MOUNTS = (DRIVE, PHOTOS)
 
 
 def systemd_quote(arg: str) -> str:
@@ -16,8 +42,34 @@ def systemd_quote(arg: str) -> str:
     return f'"{escaped}"'
 
 
-def build_unit(cfg: st.Settings, rclone_path: str) -> str:
-    mount_point = str(Path(cfg.mount_point).expanduser())
+def _mount_args(mount: Mount, cfg: st.Settings) -> tuple[str, list[str]]:
+    """Carpeta de montaje y opciones específicas de cada servicio."""
+    if mount is PHOTOS:
+        # Opciones recomendadas por la documentación de rclone para Fotos.
+        return str(Path(cfg.photos_mount_point).expanduser()), [
+            "--iclouddrive-service",
+            "photos",
+            "--read-only",
+            "--vfs-refresh",
+            "--dir-cache-time",
+            "1h",
+            "--attr-timeout",
+            "1m",
+            "--vfs-cache-max-size",
+            f"{cfg.photos_cache_max_size_gb}G",
+        ]
+    return str(Path(cfg.mount_point).expanduser()), [
+        "--vfs-cache-max-size",
+        f"{cfg.cache_max_size_gb}G",
+        "--vfs-cache-max-age",
+        "720h",
+        "--dir-cache-time",
+        "1m",
+    ]
+
+
+def build_unit(cfg: st.Settings, rclone_path: str, mount: Mount = DRIVE) -> str:
+    mount_point, extra = _mount_args(mount, cfg)
     args = [
         rclone_path,
         "mount",
@@ -25,18 +77,13 @@ def build_unit(cfg: st.Settings, rclone_path: str) -> str:
         mount_point,
         *rclone.common_args(cfg),
         "--cache-dir",
-        str(st.cache_dir()),
+        str(st.cache_dir() / mount.kind),
         "--vfs-cache-mode",
         "full",
-        "--vfs-cache-max-size",
-        f"{cfg.cache_max_size_gb}G",
-        "--vfs-cache-max-age",
-        "720h",
-        "--dir-cache-time",
-        "1m",
+        *extra,
         "--rc",
         "--rc-addr",
-        f"unix://{st.mount_rc_socket()}",
+        f"unix://{st.mount_rc_socket(mount.kind)}",
         "--rc-no-auth",
         "--log-level",
         "INFO",
@@ -45,7 +92,7 @@ def build_unit(cfg: st.Settings, rclone_path: str) -> str:
     quoted_mp = systemd_quote(mount_point)
     return f"""# Generado por Nimbo. Se reescribe al cambiar las preferencias.
 [Unit]
-Description=Nimbo: iCloud Drive en {mount_point.replace("%", "%%")}
+Description=Nimbo: {mount.description} en {mount_point.replace("%", "%%")}
 After=network-online.target
 Wants=network-online.target
 # Si la sesión de Apple caducó, no insistir: Nimbo pedirá el código 2FA.
@@ -54,7 +101,8 @@ StartLimitBurst=3
 
 [Service]
 Type=notify
-RuntimeDirectory=nimbo
+# Carpeta propia por servicio: al parar uno no se borra el socket del otro.
+RuntimeDirectory=nimbo/{mount.kind}
 RuntimeDirectoryMode=0700
 ExecStartPre=/usr/bin/mkdir -p {quoted_mp}
 ExecStartPre=-/usr/bin/fusermount3 -uz {quoted_mp}
@@ -74,69 +122,85 @@ def _systemctl(*args: str, check: bool = True) -> subprocess.CompletedProcess:
     )
 
 
+def _installed_units() -> list[str]:
+    return [m.unit_name for m in MOUNTS if m.installed()]
+
+
 def install(cfg: st.Settings) -> None:
+    """Escribe y activa los servicios según las preferencias (Fotos es opcional)."""
     binary = rclone.rclone_binary()
     if not binary:
         raise rclone.RcloneError(_("rclone no está instalado"))
-    unit = st.systemd_unit_path()
-    unit.parent.mkdir(parents=True, exist_ok=True)
-    st.ensure_private_dir(st.cache_dir())
-    unit.write_text(build_unit(cfg, binary))
+    st.systemd_unit_dir().mkdir(parents=True, exist_ok=True)
+    wanted = [DRIVE, PHOTOS] if cfg.photos_enabled else [DRIVE]
+    for mount in MOUNTS:
+        if mount in wanted:
+            st.ensure_private_dir(st.cache_dir() / mount.kind)
+            mount.unit_path().write_text(build_unit(cfg, binary, mount))
+        elif mount.installed():
+            _systemctl("disable", "--now", mount.unit_name, check=False)
+            mount.unit_path().unlink(missing_ok=True)
     _systemctl("daemon-reload")
-    _systemctl("enable", st.SERVICE_NAME)
+    _systemctl("enable", *[m.unit_name for m in wanted])
+
+
+def upgrade_if_needed(cfg: st.Settings) -> bool:
+    """Regenera los servicios escritos por una versión anterior de Nimbo."""
+    if not DRIVE.installed():
+        return False
+    if f"RuntimeDirectory=nimbo/{DRIVE.kind}" in DRIVE.unit_path().read_text():
+        return False
+    install(cfg)
+    restart()
+    return True
 
 
 def start() -> None:
-    _systemctl("reset-failed", st.SERVICE_NAME, check=False)
-    _systemctl("start", st.SERVICE_NAME)
+    units = _installed_units()
+    if units:
+        _systemctl("reset-failed", *units, check=False)
+        _systemctl("start", *units)
 
 
 def stop() -> None:
-    _systemctl("stop", st.SERVICE_NAME, check=False)
+    _systemctl("stop", *[m.unit_name for m in MOUNTS], check=False)
 
 
 def restart() -> None:
-    _systemctl("reset-failed", st.SERVICE_NAME, check=False)
-    _systemctl("restart", st.SERVICE_NAME)
+    units = _installed_units()
+    if units:
+        _systemctl("reset-failed", *units, check=False)
+        _systemctl("restart", *units)
 
 
 def uninstall() -> None:
-    _systemctl("disable", "--now", st.SERVICE_NAME, check=False)
-    st.systemd_unit_path().unlink(missing_ok=True)
+    _systemctl("disable", "--now", *[m.unit_name for m in MOUNTS], check=False)
+    for mount in MOUNTS:
+        mount.unit_path().unlink(missing_ok=True)
     _systemctl("daemon-reload", check=False)
 
 
-def state() -> str:
+def state(mount: Mount = DRIVE) -> str:
     """'active', 'activating', 'inactive', 'failed', ..."""
-    proc = _systemctl("is-active", st.SERVICE_NAME, check=False)
+    proc = _systemctl("is-active", mount.unit_name, check=False)
     return proc.stdout.strip() or "unknown"
 
 
-def recent_log(lines: int = 80) -> str:
-    proc = subprocess.run(
-        [
-            "journalctl",
-            "--user",
-            "-u",
-            st.SERVICE_NAME,
-            "-n",
-            str(lines),
-            "--no-pager",
-            "-o",
-            "cat",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=30,
-    )
+def recent_log(lines: int = 80, mount: Mount | None = None) -> str:
+    """Registro de un servicio, o de todos si ``mount`` es None."""
+    units = [mount] if mount else list(MOUNTS)
+    cmd = ["journalctl", "--user"]
+    for m in units:
+        cmd += ["-u", m.unit_name]
+    cmd += ["-n", str(lines), "--no-pager", "-o", "cat" if mount else "short"]
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=30)
     return proc.stdout
 
 
-def failed_because_of_auth() -> bool:
+def failed_because_of_auth(mount: Mount = DRIVE) -> bool:
     errors = [
         line
-        for line in recent_log(60).splitlines()
+        for line in recent_log(60, mount).splitlines()
         if any(tag in line for tag in ("ERROR", "CRITICAL", "Fatal", "Failed"))
     ]
     return rclone.looks_like_auth_error("\n".join(errors))

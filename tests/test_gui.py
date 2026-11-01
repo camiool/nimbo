@@ -74,6 +74,44 @@ def test_reauth_dialog_starts_on_credentials(app):
     dlg.reject()
 
 
+def test_folder_problem_overlap(tmp_path):
+    drive = tmp_path / "iCloud"
+    assert login.folder_problem(drive, drive)
+    assert login.folder_problem(drive / "Fotos", drive)
+    assert login.folder_problem(tmp_path, drive)
+    assert login.folder_problem(tmp_path / "Fotos", drive) is None
+    full = tmp_path / "llena2"
+    full.mkdir()
+    (full / "x").write_text("x")
+    assert login.folder_problem(full, drive, allow_nonempty=True) is None
+
+
+def test_prefs_enable_photos(app, tmp_path):
+    cfg = st.Settings(mount_point=str(tmp_path / "iCloud"))
+    dlg = prefs.PrefsDialog(cfg)
+    assert not dlg.photos_edit.isEnabled()
+    dlg.photos_check.setChecked(True)
+    assert dlg.photos_edit.isEnabled()
+    dlg.photos_edit.setText(str(tmp_path / "iCloud" / "Fotos"))  # dentro de Drive: no
+    dlg._save()
+    assert dlg.error.isVisibleTo(dlg)
+    assert not st.Settings.load().photos_enabled
+    dlg.photos_edit.setText(str(tmp_path / "Fotos"))
+    dlg.photos_cache.setValue(8)
+    dlg._save()
+    saved = st.Settings.load()
+    assert saved.photos_enabled
+    assert saved.photos_mount_point == str(tmp_path / "Fotos")
+    assert saved.photos_cache_max_size_gb == 8
+
+
+def test_wizard_has_photos_option(app):
+    dlg = login.LoginDialog(st.Settings())
+    assert not dlg.photos_check.isChecked()
+    dlg.session = None
+    dlg.close()
+
+
 def test_folder_problem(tmp_path):
     assert login.folder_problem(tmp_path / "nueva") is None
     (tmp_path / "llena").mkdir()
