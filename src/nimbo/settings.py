@@ -79,6 +79,10 @@ class Settings:
     photos_enabled: bool = False
     photos_mount_point: str = field(default_factory=lambda: str(Path.home() / _("Fotos de iCloud")))
     photos_cache_max_size_gb: int = 5
+    # "Editar una copia": subcarpeta de iCloud Drive para las copias y programa
+    # con el que abrirlas (vacío = el predeterminado del sistema).
+    edited_subfolder: str = field(default_factory=lambda: _("Fotos editadas"))
+    photo_editor: str = ""
 
     @classmethod
     def load(cls) -> Settings:

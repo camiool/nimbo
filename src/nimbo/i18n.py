@@ -108,6 +108,21 @@ _EN = {
     "La primera vez puede tardar unos minutos en mostrar todos los álbumes. Las fotos no "
     "se pueden subir ni borrar desde aquí.": "The first time it may take a few minutes to "
     "show all albums. Photos can't be uploaded or deleted from here.",
+    "Editar una copia (Nimbo)": "Edit a copy (Nimbo)",
+    "Copia lista para editar": "Copy ready to edit",
+    "Se guardó en {folder}. Al guardar los cambios se subirán a iCloud Drive.":
+    "Saved to {folder}. When you save your changes they will be uploaded to iCloud Drive.",
+    "iCloud Drive no está conectado. Reanuda la sincronización desde el icono de Nimbo e "
+    "inténtalo otra vez.": "iCloud Drive is not connected. Resume sync from the Nimbo icon "
+    "and try again.",
+    "Uso: nimbo-edit-copy ARCHIVO…": "Usage: nimbo-edit-copy FILE…",
+    "No se pudo copiar": "Could not copy",
+    "Fotos editadas": "Edited Photos",
+    "Programa predeterminado (ej.: gimp, krita)": "Default app (e.g. gimp, krita)",
+    "Editar copias con": "Edit copies with",
+    "Para editar una, haz clic derecho sobre ella → \"Editar una copia (Nimbo)\": se copia "
+    "a iCloud Drive en la carpeta \"{folder}\".": "To edit one, right-click it → \"Edit a copy "
+    "(Nimbo)\": it is copied to iCloud Drive into the \"{folder}\" folder.",
     "Las carpetas de iCloud Drive y de Fotos deben ser distintas y no estar una dentro "
     "de la otra.": "The iCloud Drive and Photos folders must be different and not inside "
     "each other.",

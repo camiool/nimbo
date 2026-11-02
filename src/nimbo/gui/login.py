@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import keyring, rclone, service
+from .. import integration, keyring, rclone, service
 from .. import settings as st
 from ..i18n import _
 from .icons import app_icon
@@ -369,6 +369,7 @@ class LoginDialog(QDialog):
 
         def work() -> None:
             service.write_autostart(cfg.autostart)
+            integration.sync(cfg)
             service.install(cfg)
             service.start()
 

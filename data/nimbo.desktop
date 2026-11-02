@@ -8,6 +8,6 @@ Comment[es]=Usa iCloud Drive como una carpeta
 Exec=nimbo
 Icon=nimbo
 Terminal=false
-Categories=Network;FileTransfer;Utility;Qt;
+Categories=Network;FileTransfer;Qt;
 Keywords=icloud;apple;cloud;sync;nube;
 StartupNotify=false

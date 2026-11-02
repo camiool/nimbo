@@ -3,7 +3,7 @@
 # Construye Nimbo desde esta copia del repositorio:
 #   cd packaging/arch && makepkg -si
 pkgname=nimbo
-pkgver=0.2.0
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="iCloud Drive como una carpeta más en Linux (basado en rclone)"
 arch=('any')
@@ -12,6 +12,7 @@ license=('GPL-3.0-or-later')
 depends=('python' 'pyside6' 'rclone' 'fuse3' 'libsecret')
 makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
 optdepends=('kwallet: guardar la clave en KWallet (Plasma)'
+            'libnotify: avisos de "Editar una copia"'
             'gnome-keyring: guardar la clave en GNOME Keyring')
 source=()
 sha256sums=()

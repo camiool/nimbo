@@ -78,6 +78,22 @@ Actívalo en el asistente ("Mostrar también mis fotos de iCloud") o más tarde 
 - Las fotos que abres se guardan en una caché local con su propio límite (5 GB por defecto).
 - Las Live Photos aparecen como dos archivos: la foto y un `.MOV` corto.
 
+#### Editar una foto
+
+Como la carpeta es de solo lectura, Nimbo añade un atajo al menú del clic derecho de **Dolphin** (y de **Nautilus**, si lo usas):
+
+1. Clic derecho sobre una o varias fotos → **Editar una copia (Nimbo)**.
+2. Nimbo las copia a `~/iCloud/Fotos editadas/` y las abre en tu editor. Si ya existe una copia con ese nombre, la nueva se llama `IMG_0001 (2).HEIC`.
+3. Edita y guarda: la versión editada se sube sola a iCloud Drive. El original en Fotos no cambia.
+
+En **Preferencias → iCloud Fotos → Editar copias con** puedes elegir el programa (por ejemplo `gimp` o `krita`). Si lo dejas vacío, usa el predeterminado del sistema. La versión editada aparece en la app **Archivos** del iPhone. Para pasarla a la app **Fotos**, ábrela ahí y toca Compartir → "Guardar imagen".
+
+También funciona desde la terminal:
+
+```bash
+nimbo-edit-copy "~/Fotos de iCloud/PrimarySync/Favorites/IMG_0001.HEIC"
+```
+
 ### Idioma
 
 Nimbo usa el idioma del sistema: español si tu sistema está en español, inglés en cualquier otro caso. Para elegirlo a mano, ve a **Preferencias → Idioma**.
@@ -124,6 +140,8 @@ Ver también [SECURITY.md](SECURITY.md).
 | `src/nimbo/rclone.py` | Habla con rclone por socket Unix: alta, 2FA y estado |
 | `src/nimbo/service.py` | Genera y controla los servicios de systemd (Drive y Fotos) |
 | `src/nimbo/keyring.py` | `nimbo-keyring`: entrega a rclone la clave del llavero |
+| `src/nimbo/editcopy.py` | `nimbo-edit-copy`: copia fotos a iCloud Drive para editarlas |
+| `src/nimbo/integration.py` | Atajo "Editar una copia" en Dolphin y Nautilus |
 | `src/nimbo/status.py` | Calcula el estado (conectado, sincronizando, sesión caducada…) |
 | `src/nimbo/gui/` | Bandeja, asistente y preferencias |
 
@@ -147,4 +165,4 @@ Las contribuciones son bienvenidas. Lee [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## English summary
 
-Nimbo is a free (GPL-3.0) tray app that mounts **iCloud Drive as a regular folder on Linux**, similar to macOS, plus an optional **read-only iCloud Photos** folder organized by library and album (same session, no second 2FA). It is built on rclone's `iclouddrive` backend. It handles sign-in and 2FA through a GUI, runs the mount as a systemd user service with a capped VFS cache, and warns you when Apple's session expires (about every 30 days) so you can re-enter the code. The rclone config is encrypted with a random key stored in the system keyring via libsecret, and credentials are never passed on the command line. The interface is available in **English and Spanish**: it follows your system language, and you can switch it under Preferences → Language. Requirements: "Access iCloud Data on the Web" on (Advanced Data Protection is supported; Apple asks you to approve access on a device), rclone ≥ 1.75. Install on Arch/CachyOS with `cd packaging/arch && makepkg -si`. Not affiliated with Apple.
+Nimbo is a free (GPL-3.0) tray app that mounts **iCloud Drive as a regular folder on Linux**, similar to macOS, plus an optional **read-only iCloud Photos** folder organized by library and album (same session, no second 2FA). Since Photos is read-only, a right-click "Edit a copy (Nimbo)" action in Dolphin/Nautilus copies a photo into iCloud Drive and opens it in your editor. It is built on rclone's `iclouddrive` backend. It handles sign-in and 2FA through a GUI, runs the mount as a systemd user service with a capped VFS cache, and warns you when Apple's session expires (about every 30 days) so you can re-enter the code. The rclone config is encrypted with a random key stored in the system keyring via libsecret, and credentials are never passed on the command line. The interface is available in **English and Spanish**: it follows your system language, and you can switch it under Preferences → Language. Requirements: "Access iCloud Data on the Web" on (Advanced Data Protection is supported; Apple asks you to approve access on a device), rclone ≥ 1.75. Install on Arch/CachyOS with `cd packaging/arch && makepkg -si`. Not affiliated with Apple.

@@ -8,7 +8,7 @@ from PySide6.QtCore import QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QDesktopServices
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QSystemTrayIcon
 
-from .. import HOMEPAGE, __version__, service
+from .. import HOMEPAGE, __version__, integration, service
 from .. import settings as st
 from ..i18n import _
 from ..status import Snapshot, Status, StatusProbe
@@ -84,7 +84,7 @@ class Tray(QSystemTrayIcon):
 
         cfg = self.cfg
         if cfg.is_configured:
-            run_async(lambda: service.upgrade_if_needed(cfg))
+            run_async(lambda: (service.upgrade_if_needed(cfg), integration.sync(cfg)))
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.poll)

@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import i18n, keyring, service
+from .. import i18n, integration, keyring, service
 from .. import settings as st
 from ..i18n import _
 from .icons import app_icon
@@ -36,6 +36,7 @@ def sign_out(cfg: st.Settings) -> None:
     """Desmonta, borra credenciales locales y caché. No toca iCloud."""
     service.uninstall()
     service.write_autostart(False)
+    integration.remove()
     st.rclone_config_path().unlink(missing_ok=True)
     keyring.clear()
     shutil.rmtree(st.cache_dir(), ignore_errors=True)
@@ -89,14 +90,20 @@ class PrefsDialog(QDialog):
         self.photos_cache.setSuffix(" GB")
         self.photos_cache.setValue(cfg.photos_cache_max_size_gb)
         form.addRow(_("Caché para fotos"), self.photos_cache)
+        self.editor_edit = QLineEdit(cfg.photo_editor)
+        self.editor_edit.setPlaceholderText(_("Programa predeterminado (ej.: gimp, krita)"))
+        form.addRow(_("Editar copias con"), self.editor_edit)
         hint = QLabel(_("La primera vez puede tardar unos minutos en mostrar todos los "
-                        "álbumes. Las fotos no se pueden subir ni borrar desde aquí."))
+                        "álbumes. Las fotos no se pueden subir ni borrar desde aquí.")
+                      + " " + _("Para editar una, haz clic derecho sobre ella → "
+                                "\"Editar una copia (Nimbo)\": se copia a iCloud Drive "
+                                "en la carpeta \"{folder}\".", folder=cfg.edited_subfolder))
         hint.setWordWrap(True)
         hint.setStyleSheet("color: gray;")
         form.addRow(hint)
 
         def toggle_photos(on: bool) -> None:
-            for w in (self.photos_edit, photos_pick, self.photos_cache):
+            for w in (self.photos_edit, photos_pick, self.photos_cache, self.editor_edit):
                 w.setEnabled(on)
 
         self.photos_check.toggled.connect(toggle_photos)
@@ -174,6 +181,7 @@ class PrefsDialog(QDialog):
         cfg.photos_enabled = photos_on
         cfg.photos_mount_point = new_photos
         cfg.photos_cache_max_size_gb = self.photos_cache.value()
+        cfg.photo_editor = self.editor_edit.text().strip()
         cfg.autostart = self.autostart.isChecked()
         new_language = self.language.currentData()
         language_changed = new_language != cfg.language
@@ -182,6 +190,7 @@ class PrefsDialog(QDialog):
 
         def work() -> None:
             service.write_autostart(cfg.autostart)
+            integration.sync(cfg)
             if changed and cfg.is_configured:
                 service.stop()
                 service.install(cfg)

@@ -24,6 +24,7 @@ Homepage = "https://github.com/camiool/nimbo"
 
 [project.scripts]
 nimbo-keyring = "nimbo.keyring:main"
+nimbo-edit-copy = "nimbo.editcopy:main"
 
 [project.gui-scripts]
 nimbo = "nimbo.app:main"
